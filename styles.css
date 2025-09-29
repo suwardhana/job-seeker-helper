@@ -121,3 +121,20 @@ button {
 .debug.active {
   display: block;
 }
+
+#siteList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.site-url {
+  flex: 1;
+}
+
+#refreshAll {
+  margin-bottom: 10px;
+  background: #dc3545;
+  color: white;
+}

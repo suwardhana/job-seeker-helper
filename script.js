@@ -3,16 +3,16 @@ let selectedCategory = null;
 
 // Dummy JSON data
 const dummyData = [
-  { category: "early startup", site_url: "builtin.com/jobs" },
-  { category: "early startup", site_url: "dover.com" },
-  { category: "early startup", site_url: "careerpuck.com" },
-  { category: "early startup", site_url: "recruiterbox.com" },
-  { category: "early startup", site_url: "recruiting.paylocity.com" },
-  // { category: "early startup", site_url: "remoterocketship.com" },
-  { category: "early startup", site_url: "rippling-ats.com" },
-  { category: "early startup", site_url: "wellfound.com" },
-  { category: "early startup", site_url: "workatastartup.com" },
-  { category: "early startup", site_url: "jobscore.com" },
+  { category: "Early", site_url: "builtin.com/jobs" },
+  { category: "Early", site_url: "dover.com" },
+  { category: "Early", site_url: "careerpuck.com" },
+  { category: "Early", site_url: "recruiterbox.com" },
+  { category: "Early", site_url: "recruiting.paylocity.com" },
+  // { category: "Early", site_url: "remoterocketship.com" },
+  { category: "Early", site_url: "rippling-ats.com" },
+  { category: "Early", site_url: "wellfound.com" },
+  { category: "Early", site_url: "workatastartup.com" },
+  { category: "Early", site_url: "jobscore.com" },
   { category: "ATS", site_url: "bamboohr.com" },
   { category: "ATS", site_url: "breezy.hr" },
   { category: "ATS", site_url: "greenhouse.io" },
@@ -82,6 +82,7 @@ document.getElementById('addForm').addEventListener('submit', e => {
   document.getElementById('site_url').value = '';
 
   renderCategories();
+  renderSites();
 });
 
 // Render categories
@@ -116,15 +117,55 @@ function renderSites() {
 
   if (!selectedCategory) return;
 
-  const res = db.exec("SELECT site_url FROM portals WHERE category = ?", [selectedCategory]);
+  const res = db.exec("SELECT rowid, site_url FROM portals WHERE category = ?", [selectedCategory]);
   if (res.length === 0) return;
 
   res[0].values.forEach(row => {
+    const [id, url] = row;
     const li = document.createElement('li');
-    li.textContent = row[0];
+    li.innerHTML = `
+      <span class="site-url">${url}</span>
+      <button onclick="editSite(${id}, '${url}')">Edit</button>
+      <button onclick="deleteSite(${id})">Delete</button>
+    `;
     list.appendChild(li);
   });
 }
+
+// Edit site
+function editSite(id, currentUrl) {
+  const newUrl = prompt('Edit site URL:', currentUrl);
+  if (newUrl && newUrl.trim() !== currentUrl) {
+    db.run("UPDATE portals SET site_url = ? WHERE rowid = ?", [newUrl.trim(), id]);
+    saveDb();
+    renderSites();
+  }
+}
+
+// Delete site
+function deleteSite(id) {
+  if (confirm('Delete this site?')) {
+    db.run("DELETE FROM portals WHERE rowid = ?", [id]);
+    saveDb();
+    renderSites();
+  }
+}
+
+// Refresh all data
+function refreshAll() {
+  if (confirm('Reset all data to dummy data? This will delete all custom entries.')) {
+    db.run("DELETE FROM portals");
+    dummyData.forEach(item => {
+      db.run("INSERT INTO portals (category, site_url) VALUES (?, ?)", [item.category, item.site_url]);
+    });
+    saveDb();
+    renderCategories();
+    renderSites();
+  }
+}
+
+// Refresh all button
+document.getElementById('refreshAll').addEventListener('click', refreshAll);
 
 // --- Search logic ---
 document.getElementById('searchForm').addEventListener('submit', (e) => {
