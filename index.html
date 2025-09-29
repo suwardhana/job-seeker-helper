@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced Job Seeker Helper</title>
+  <link rel="stylesheet"
+    href="styles.css">
+</head>
+
+<body>
+  <main class="container">
+    <h1>Advanced Job Seeker Helper</h1>
+
+    <!-- Search Form -->
+    <form id="searchForm"
+      class="search-form"
+      autocomplete="off">
+      <div class="field">
+        <label for="keyword">Keyword</label>
+        <input type="text"
+          id="keyword"
+          name="keyword"
+          placeholder="e.g., QA Engineer, Appium"
+          required />
+      </div>
+
+      <div class="field">
+        <label for="dateRange">Date range</label>
+        <select id="dateRange"
+          name="dateRange"
+          required>
+          <option value="today">Today</option>
+          <option value="this-week">This week</option>
+          <option value="this-month">This month</option>
+        </select>
+      </div>
+
+      <button type="submit"
+        class="btn">Search</button>
+    </form>
+
+    <section class="hint">
+      <p><strong>Tip:</strong> Select a category below to filter which job portals are searched.</p>
+    </section>
+
+    <!-- Category + Site Manager -->
+    <h2>Manage Job Portals</h2>
+    <form id="addForm">
+      <input type="text"
+        id="category"
+        placeholder="Category (e.g., QA, Dev)"
+        required>
+      <input type="text"
+        id="site_url"
+        placeholder="Site URL (e.g., example.com)"
+        required>
+      <button type="submit">Add</button>
+    </form>
+
+    <h3>Categories</h3>
+    <div id="categoryPicker"
+      class="picker"></div>
+
+    <h3>Sites in Selected Category</h3>
+    <ul id="siteList"></ul>
+
+    <!-- Debug -->
+    <section class="debug"
+      id="debug"
+      aria-live="polite"></section>
+  </main>
+
+  <!-- sql.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.13.0/sql-wasm.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
