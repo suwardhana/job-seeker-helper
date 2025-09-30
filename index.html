@@ -11,61 +11,73 @@
 <body>
   <main class="container">
     <h1>Job Query Builder</h1>
+    
+    <div class="cards-container">
+      <!-- Search Card -->
+      <div class="card search-card">
+        <h2>Search Jobs</h2>
+        <form id="searchForm"
+          class="search-form"
+          autocomplete="off">
+          <div class="field">
+            <label for="keyword">Keyword</label>
+            <input type="text"
+              id="keyword"
+              name="keyword"
+              placeholder="e.g., QA Engineer, Appium"
+              required />
+          </div>
 
-    <!-- Search Form -->
-    <form id="searchForm"
-      class="search-form"
-      autocomplete="off">
-      <div class="field">
-        <label for="keyword">Keyword</label>
-        <input type="text"
-          id="keyword"
-          name="keyword"
-          placeholder="e.g., QA Engineer, Appium"
-          required />
+          <div class="field">
+            <label for="dateRange">Date range</label>
+            <select id="dateRange"
+              name="dateRange"
+              required>
+              <option value="today">Today</option>
+              <option value="this-week">This week</option>
+              <option value="this-month">This month</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Categories</label>
+            <div id="categoryPicker"
+              class="picker"></div>
+          </div>
+
+          <button type="submit"
+            class="btn">Search</button>
+        </form>
+
+        <section class="hint">
+          <p><strong>Tip:</strong> Select a category above to filter which job portals are searched.</p>
+        </section>
+
+        <div class="field">
+          <label>Sites in Selected Category</label>
+          <ul id="siteList"></ul>
+        </div>
       </div>
 
-      <div class="field">
-        <label for="dateRange">Date range</label>
-        <select id="dateRange"
-          name="dateRange"
-          required>
-          <option value="today">Today</option>
-          <option value="this-week">This week</option>
-          <option value="this-month">This month</option>
-        </select>
+      <!-- Manage Portals Card -->
+      <div class="card manage-card">
+        <h2>Manage Job Portals</h2>
+        <form id="addForm">
+          <input type="text"
+            id="category"
+            placeholder="Category (e.g., QA, Dev)"
+            required>
+          <input type="text"
+            id="site_url"
+            placeholder="Site URL (e.g., example.com)"
+            required>
+          <button type="submit">Add</button>
+        </form>
+
+        <button id="refreshAll"
+          type="button">Refresh All (Reset to Dummy Data)</button>
       </div>
-
-      <button type="submit"
-        class="btn">Search</button>
-    </form>
-
-    <section class="hint">
-      <p><strong>Tip:</strong> Select a category below to filter which job portals are searched.</p>
-    </section>
-
-    <!-- Category + Site Manager -->
-    <h2>Manage Job Portals</h2>
-    <form id="addForm">
-      <input type="text"
-        id="category"
-        placeholder="Category (e.g., QA, Dev)"
-        required>
-      <input type="text"
-        id="site_url"
-        placeholder="Site URL (e.g., example.com)"
-        required>
-      <button type="submit">Add</button>
-    </form>
-
-    <h3>Categories</h3>
-    <div id="categoryPicker"
-      class="picker"></div>
-
-    <h3>Sites in Selected Category</h3>
-    <button id="refreshAll"
-      type="button">Refresh All (Reset to Dummy Data)</button>
-    <ul id="siteList"></ul>
+    </div>
 
     <!-- Debug -->
     <section class="debug"
