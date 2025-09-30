@@ -1,0 +1,20 @@
+name: Publish Website
+
+on: push
+
+jobs:
+  Fast-FTP-Action:
+    name: Fast FTP Action
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Fast FTP Action
+        uses: anvil-solutions/Fast-FTP-Action@2.1.0
+        with:
+          server: ftp.imtheluckiest.com
+          port: 21
+          username: rootpublichtml@imtheluckiest.com
+          password: ${{ secrets.FTP_PASSWORD }}
+          remote_dir: "job-query-builder/"
