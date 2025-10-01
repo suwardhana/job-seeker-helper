@@ -1,29 +1,6 @@
 let db;
 let selectedCategory = null;
-
-// Dummy JSON data
-const dummyData = [
-  { category: "Early", site_url: "builtin.com/jobs" },
-  { category: "Early", site_url: "dover.com" },
-  { category: "Early", site_url: "careerpuck.com" },
-  { category: "Early", site_url: "recruiterbox.com" },
-  { category: "Early", site_url: "recruiting.paylocity.com" },
-  // { category: "Early", site_url: "remoterocketship.com" },
-  { category: "Early", site_url: "rippling-ats.com" },
-  { category: "Early", site_url: "wellfound.com" },
-  { category: "Early", site_url: "workatastartup.com" },
-  { category: "Early", site_url: "jobscore.com" },
-  { category: "ATS", site_url: "bamboohr.com" },
-  { category: "ATS", site_url: "breezy.hr" },
-  { category: "ATS", site_url: "greenhouse.io" },
-  { category: "ATS", site_url: "jazzhr.com" },
-  { category: "ATS", site_url: "lever.co" },
-  { category: "ATS", site_url: "jobs.workable.com" },
-  { category: "ATS", site_url: "recruitee.com" },
-  { category: "ATS", site_url: "hireology.com" },
-  { category: "ATS", site_url: "applicantpro.com" },
-  { category: "ATS", site_url: "homerun.co" }
-];
+let dummyData = [];
 
 
 init();
@@ -47,6 +24,10 @@ async function init() {
   const SQL = await initSqlJs({
     locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.13.0/${file}`
   });
+
+  // Load dummy data from JSON file
+  const response = await fetch('./data.json');
+  dummyData = await response.json();
 
   // Load from localStorage if available
   db = loadDb(SQL);
@@ -173,6 +154,8 @@ document.getElementById('searchForm').addEventListener('submit', (e) => {
 
   const keyword = document.getElementById('keyword').value.trim();
   const dateRange = document.getElementById('dateRange').value;
+  const excludeHybrid = document.getElementById('excludeHybrid').checked;
+  const excludeOnsite = document.getElementById('excludeOnsite').checked;
 
   if (!keyword) {
     alert('Please enter a keyword.');
@@ -183,18 +166,27 @@ document.getElementById('searchForm').addEventListener('submit', (e) => {
     return;
   }
 
-  const query = buildGoogleQuery({ keyword, dateRange, category: selectedCategory });
+  const query = buildGoogleQuery({ keyword, dateRange, category: selectedCategory, excludeHybrid, excludeOnsite });
   showDebug(query);
   openGoogleSearch(query);
 });
 
-function buildGoogleQuery({ keyword, dateRange, category }) {
+function buildGoogleQuery({ keyword, dateRange, category, excludeHybrid, excludeOnsite }) {
   const res = db.exec("SELECT site_url FROM portals WHERE category = ?", [category]);
   const sites = res.length > 0 ? res[0].values.map(row => row[0]) : [];
   const siteFilter = buildSiteFilter(sites);
   const afterDate = computeAfterDate(dateRange);
 
-  return `${siteFilter} "${keyword}" after:${afterDate} Remote`;
+  let query = `${siteFilter} "${keyword}" after:${afterDate} Remote`;
+
+  if (excludeHybrid) {
+    query += ' -hybrid';
+  }
+  if (excludeOnsite) {
+    query += ' -onsite';
+  }
+
+  return query;
 }
 
 function buildSiteFilter(domains) {
@@ -217,8 +209,9 @@ function computeAfterDate(range) {
   }
 
   if (range === 'this-month') {
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    return formatDate(firstOfMonth);
+    const monthago = new Date(now);
+    monthago.setDate(now.getDate() - 31);
+    return formatDate(monthago);
   }
 
   return formatDate(now);

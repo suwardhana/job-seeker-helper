@@ -1,0 +1,86 @@
+[
+  {
+    "category": "Early",
+    "site_url": "builtin.com/jobs"
+  },
+  {
+    "category": "Early",
+    "site_url": "dover.com"
+  },
+  {
+    "category": "Early",
+    "site_url": "careerpuck.com"
+  },
+  {
+    "category": "Early",
+    "site_url": "recruiterbox.com"
+  },
+  {
+    "category": "Early",
+    "site_url": "recruiting.paylocity.com"
+  },
+  {
+    "category": "Early",
+    "site_url": "rippling-ats.com"
+  },
+  {
+    "category": "Early",
+    "site_url": "wellfound.com"
+  },
+  {
+    "category": "Early",
+    "site_url": "workatastartup.com"
+  },
+  {
+    "category": "Early",
+    "site_url": "jobscore.com"
+  },
+  {
+    "category": "ATS",
+    "site_url": "bamboohr.com"
+  },
+  {
+    "category": "ATS",
+    "site_url": "breezy.hr"
+  },
+  {
+    "category": "ATS",
+    "site_url": "greenhouse.io"
+  },
+  {
+    "category": "ATS",
+    "site_url": "jazzhr.com"
+  },
+  {
+    "category": "ATS",
+    "site_url": "lever.co"
+  },
+  {
+    "category": "ATS",
+    "site_url": "jobs.workable.com"
+  },
+  {
+    "category": "ATS",
+    "site_url": "recruitee.com"
+  },
+  {
+    "category": "ATS",
+    "site_url": "hireology.com"
+  },
+  {
+    "category": "ATS",
+    "site_url": "applicantpro.com"
+  },
+  {
+    "category": "ATS",
+    "site_url": "homerun.co"
+  },
+  {
+    "category": "RedditRecommendation",
+    "site_url": "ziprecruiter.ie"
+  },
+  {
+    "category": "RedditRecommendation",
+    "site_url": "ratracerebellion.com"
+  }
+]

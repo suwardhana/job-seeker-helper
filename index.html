@@ -11,7 +11,7 @@
 <body>
   <main class="container">
     <h1>Job Query Builder</h1>
-    
+
     <div class="cards-container">
       <!-- Search Card -->
       <div class="card search-card">
@@ -34,8 +34,8 @@
               name="dateRange"
               required>
               <option value="today">Today</option>
-              <option value="this-week">This week</option>
-              <option value="this-month">This month</option>
+              <option value="this-week">Last week</option>
+              <option value="this-month">Last month</option>
             </select>
           </div>
 
@@ -43,6 +43,20 @@
             <label>Categories</label>
             <div id="categoryPicker"
               class="picker"></div>
+          </div>
+
+          <div class="field">
+            <label>Exclusions</label>
+            <div class="exclusions">
+              <label class="checkbox-label">
+                <input type="checkbox" id="excludeHybrid" name="excludeHybrid">
+                Exclude Hybrid
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="excludeOnsite" name="excludeOnsite">
+                Exclude Onsite
+              </label>
+            </div>
           </div>
 
           <button type="submit"
