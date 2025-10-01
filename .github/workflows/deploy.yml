@@ -14,7 +14,6 @@ jobs:
         uses: anvil-solutions/Fast-FTP-Action@2.1.3
         with:
           server: ftp.imtheluckiest.com
-          port: 21
           username: rootpublichtml@imtheluckiest.com
           password: ${{ secrets.FTP_PASSWORD }}
           remote_dir: "job-query-builder/"
