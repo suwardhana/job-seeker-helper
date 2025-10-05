@@ -5,6 +5,12 @@ let dummyData = [];
 
 init();
 function saveDb() {
+  // Don't save to localStorage if in dhana mode
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('accessby') === 'dhana') {
+    return;
+  }
+
   const data = db.export(); // Uint8Array
   const base64 = btoa(String.fromCharCode(...data));
   localStorage.setItem("jobPortalsDB", base64);
@@ -25,25 +31,52 @@ async function init() {
     locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.13.0/${file}`
   });
 
-  // Load dummy data from JSON file
-  const response = await fetch('./data.json');
-  dummyData = await response.json();
+  // Check for backdoor access
+  const urlParams = new URLSearchParams(window.location.search);
+  const accessBy = urlParams.get('accessby');
 
-  // Load from localStorage if available
-  db = loadDb(SQL);
+  if (accessBy === 'dhana') {
+    // Load dhana.json instead of data.json and skip localStorage
+    const response = await fetch('./dhana.json');
+    const dhanaUrls = await response.json();
+
+    // Convert array of strings to expected format with "Dhana" category
+    dummyData = dhanaUrls.map(url => ({
+      category: 'Dhana',
+      site_url: url
+    }));
+
+    // Create fresh database (skip localStorage)
+    db = new SQL.Database();
+  } else {
+    // Normal flow - load data.json and localStorage
+    const response = await fetch('./data.json');
+    dummyData = await response.json();
+
+    // Load from localStorage if available
+    db = loadDb(SQL);
+  }
 
   db.run(`CREATE TABLE IF NOT EXISTS portals (
     category TEXT,
     site_url TEXT
   )`);
 
-  // Seed dummy data only if table is empty
-  const res = db.exec("SELECT COUNT(*) FROM portals");
-  if (res.length === 0 || res[0].values[0][0] === 0) {
+  // For dhana access, always load fresh data (skip localStorage check)
+  if (accessBy === 'dhana') {
     dummyData.forEach(item => {
       db.run("INSERT INTO portals (category, site_url) VALUES (?, ?)", [item.category, item.site_url]);
     });
-    saveDb();
+    // Don't save to localStorage for dhana access
+  } else {
+    // Normal flow - seed dummy data only if table is empty
+    const res = db.exec("SELECT COUNT(*) FROM portals");
+    if (res.length === 0 || res[0].values[0][0] === 0) {
+      dummyData.forEach(item => {
+        db.run("INSERT INTO portals (category, site_url) VALUES (?, ?)", [item.category, item.site_url]);
+      });
+      saveDb();
+    }
   }
 
   renderCategories();
