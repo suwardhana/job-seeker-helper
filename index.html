@@ -4,35 +4,61 @@
 <head>
   <meta charset="UTF-8">
   <title>Job Query Builder</title>
-  <link rel="stylesheet"
-    href="styles.css">
+  <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
   <main class="container">
-    <h1>Job Query Builder</h1>
+    <!-- Auth Section -->
+    <div id="authSection" class="auth-section">
+      <h1>Job Query Builder</h1>
+      <div class="auth-cards">
+        <div class="card auth-card">
+          <h2>Login</h2>
+          <form id="loginForm">
+            <input type="email" id="loginEmail" placeholder="Email" required>
+            <input type="password" id="loginPassword" placeholder="Password" required>
+            <button type="submit">Login</button>
+          </form>
+          <p>Don't have an account? <a href="#" id="showRegister">Register here</a></p>
+        </div>
 
-    <div class="cards-container">
+        <div class="card auth-card" id="registerCard" style="display: none;">
+          <h2>Register</h2>
+          <form id="registerForm">
+            <input type="text" id="registerName" placeholder="Full Name" required>
+            <input type="email" id="registerEmail" placeholder="Email" required>
+            <input type="password" id="registerPassword" placeholder="Password" required>
+            <button type="submit">Register</button>
+          </form>
+          <p>Already have an account? <a href="#" id="showLogin">Login here</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App Section -->
+    <div id="appSection" class="app-section" style="display: none;">
+      <div class="header">
+        <h1>Job Query Builder</h1>
+        <div class="user-info">
+          <span id="userName"></span>
+          <button id="logoutBtn">Logout</button>
+        </div>
+      </div>
+
+      <div class="cards-container"></div>
       <!-- Search Card -->
       <div class="card search-card">
         <h2>Search Jobs</h2>
-        <form id="searchForm"
-          class="search-form"
-          autocomplete="off">
+        <form id="searchForm" class="search-form" autocomplete="off">
           <div class="field">
             <label for="keyword">Keyword</label>
-            <input type="text"
-              id="keyword"
-              name="keyword"
-              placeholder="e.g., QA Engineer, Appium"
-              required />
+            <input type="text" id="keyword" name="keyword" placeholder="e.g., QA Engineer, Appium" required />
           </div>
 
           <div class="field">
             <label for="dateRange">Date range</label>
-            <select id="dateRange"
-              name="dateRange"
-              required>
+            <select id="dateRange" name="dateRange" required>
               <option value="today">Today</option>
               <option value="this-week">Last week</option>
               <option value="this-month">Last month</option>
@@ -41,8 +67,7 @@
 
           <div class="field">
             <label>Categories</label>
-            <div id="categoryPicker"
-              class="picker"></div>
+            <div id="categoryPicker" class="picker"></div>
           </div>
 
           <div class="field">
@@ -59,8 +84,7 @@
             </div>
           </div>
 
-          <button type="submit"
-            class="btn">Search</button>
+          <button type="submit" class="btn">Search</button>
         </form>
 
         <section class="hint">
@@ -77,30 +101,20 @@
       <div class="card manage-card">
         <h2>Manage Job Portals</h2>
         <form id="addForm">
-          <input type="text"
-            id="category"
-            placeholder="Category (e.g., QA, Dev)"
-            required>
-          <input type="text"
-            id="site_url"
-            placeholder="Site URL (e.g., example.com)"
-            required>
+          <input type="text" id="category" placeholder="Category (e.g., QA, Dev)" required>
+          <input type="text" id="site_url" placeholder="Site URL (e.g., example.com)" required>
           <button type="submit">Add</button>
         </form>
 
-        <button id="refreshAll"
-          type="button">Refresh All (Reset to Dummy Data)</button>
+        <button id="refreshAll" type="button">Refresh All (Reset to Dummy Data)</button>
       </div>
     </div>
 
     <!-- Debug -->
-    <section class="debug"
-      id="debug"
-      aria-live="polite"></section>
+    <section class="debug" id="debug" aria-live="polite"></section>
+    </div>
   </main>
 
-  <!-- sql.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.13.0/sql-wasm.js"></script>
   <script src="script.js"></script>
 </body>
 

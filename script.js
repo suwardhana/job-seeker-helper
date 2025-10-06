@@ -1,195 +1,312 @@
-let db;
+// Global variables
 let selectedCategory = null;
-let dummyData = [];
+let userToken = null;
+let currentUser = null;
 
+// API Configuration
+const API_BASE = './backend'; // Adjust this path based on your setup
 
+// Initialize app
 init();
-function saveDb() {
-  // Don't save to localStorage if in dhana mode
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('accessby') === 'dhana') {
-    return;
-  }
 
-  const data = db.export(); // Uint8Array
-  const base64 = btoa(String.fromCharCode(...data));
-  localStorage.setItem("jobPortalsDB", base64);
+function init() {
+  // Check if user is already logged in
+  userToken = localStorage.getItem('userToken');
+  currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  
+  if (userToken && currentUser) {
+    showApp();
+    loadPortals();
+  } else {
+    showAuth();
+  }
+  
+  setupEventListeners();
 }
 
-function loadDb(SQL) {
-  const saved = localStorage.getItem("jobPortalsDB");
-  if (saved) {
-    const binary = Uint8Array.from(atob(saved), c => c.charCodeAt(0));
-    return new SQL.Database(binary);
-  } else {
-    return new SQL.Database();
-  }
+function setupEventListeners() {
+  // Auth event listeners
+  document.getElementById('loginForm').addEventListener('submit', handleLogin);
+  document.getElementById('registerForm').addEventListener('submit', handleRegister);
+  document.getElementById('showRegister').addEventListener('click', showRegisterForm);
+  document.getElementById('showLogin').addEventListener('click', showLoginForm);
+  document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+  
+  // App event listeners
+  document.getElementById('addForm').addEventListener('submit', handleAddPortal);
+  document.getElementById('refreshAll').addEventListener('click', handleRefreshAll);
+  document.getElementById('searchForm').addEventListener('submit', handleSearch);
 }
 
-async function init() {
-  const SQL = await initSqlJs({
-    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.13.0/${file}`
-  });
-
-  // Check for backdoor access
-  const urlParams = new URLSearchParams(window.location.search);
-  const accessBy = urlParams.get('accessby');
-
-  if (accessBy === 'dhana') {
-    // Load dhana.json instead of data.json and skip localStorage
-    const response = await fetch('./dhana.json');
-    const dhanaUrls = await response.json();
-
-    // Convert array of strings to expected format with "Dhana" category
-    dummyData = dhanaUrls.map(url => ({
-      category: 'Dhana',
-      site_url: url
-    }));
-
-    // Create fresh database (skip localStorage)
-    db = new SQL.Database();
-  } else {
-    // Normal flow - load data.json and localStorage
-    const response = await fetch('./data.json');
-    dummyData = await response.json();
-
-    // Load from localStorage if available
-    db = loadDb(SQL);
-  }
-
-  db.run(`CREATE TABLE IF NOT EXISTS portals (
-    category TEXT,
-    site_url TEXT
-  )`);
-
-  // For dhana access, always load fresh data (skip localStorage check)
-  if (accessBy === 'dhana') {
-    dummyData.forEach(item => {
-      db.run("INSERT INTO portals (category, site_url) VALUES (?, ?)", [item.category, item.site_url]);
+// Authentication functions
+async function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  
+  try {
+    const response = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
     });
-    // Don't save to localStorage for dhana access
-  } else {
-    // Normal flow - seed dummy data only if table is empty
-    const res = db.exec("SELECT COUNT(*) FROM portals");
-    if (res.length === 0 || res[0].values[0][0] === 0) {
-      dummyData.forEach(item => {
-        db.run("INSERT INTO portals (category, site_url) VALUES (?, ?)", [item.category, item.site_url]);
-      });
-      saveDb();
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      userToken = data.token;
+      currentUser = data.user;
+      localStorage.setItem('userToken', userToken);
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      
+      showApp();
+      loadPortals();
+    } else {
+      alert(data.error || 'Login failed');
     }
+  } catch (error) {
+    alert('Network error: ' + error.message);
   }
-
-  renderCategories();
 }
 
+async function handleRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById('registerName').value.trim();
+  const email = document.getElementById('registerEmail').value.trim();
+  const password = document.getElementById('registerPassword').value;
+  
+  try {
+    const response = await fetch(`${API_BASE}/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name, email, password })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      alert('Registration successful! Please login.');
+      showLoginForm();
+      document.getElementById('loginEmail').value = email;
+    } else {
+      alert(data.error || 'Registration failed');
+    }
+  } catch (error) {
+    alert('Network error: ' + error.message);
+  }
+}
 
-// Add new portal
-document.getElementById('addForm').addEventListener('submit', e => {
+function handleLogout() {
+  userToken = null;
+  currentUser = null;
+  localStorage.removeItem('userToken');
+  localStorage.removeItem('currentUser');
+  showAuth();
+}
+
+function showAuth() {
+  document.getElementById('authSection').style.display = 'block';
+  document.getElementById('appSection').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('authSection').style.display = 'none';
+  document.getElementById('appSection').style.display = 'block';
+  document.getElementById('userName').textContent = currentUser.name;
+}
+
+function showRegisterForm() {
+  document.getElementById('registerCard').style.display = 'block';
+  document.querySelector('.auth-card:first-child').style.display = 'none';
+}
+
+function showLoginForm() {
+  document.getElementById('registerCard').style.display = 'none';
+  document.querySelector('.auth-card:first-child').style.display = 'block';
+}
+
+// API helper function
+async function apiCall(endpoint, options = {}) {
+  const config = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(userToken && { 'Authorization': `Bearer ${userToken}` })
+    },
+    ...options
+  };
+  
+  const response = await fetch(`${API_BASE}${endpoint}`, config);
+  const data = await response.json();
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      // Token expired, logout user
+      handleLogout();
+      return;
+    }
+    throw new Error(data.error || 'API call failed');
+  }
+  
+  return data;
+}
+
+// Portal management functions
+async function loadPortals() {
+  try {
+    const portals = await apiCall('/portals');
+    renderCategories(portals);
+  } catch (error) {
+    console.error('Failed to load portals:', error);
+    alert('Failed to load portals: ' + error.message);
+  }
+}
+
+async function handleAddPortal(e) {
   e.preventDefault();
   const category = document.getElementById('category').value.trim();
-  const site_url = document.getElementById('site_url').value.trim();
-  if (!category || !site_url) return;
+  const link = document.getElementById('site_url').value.trim();
+  
+  if (!category || !link) return;
+  
+  try {
+    await apiCall('/portals', {
+      method: 'POST',
+      body: JSON.stringify({ category, link })
+    });
+    
+    document.getElementById('category').value = '';
+    document.getElementById('site_url').value = '';
+    
+    loadPortals(); // Reload portals
+  } catch (error) {
+    alert('Failed to add portal: ' + error.message);
+  }
+}
 
-  db.run("INSERT INTO portals (category, site_url) VALUES (?, ?)", [category, site_url]);
-  saveDb();
-  document.getElementById('category').value = '';
-  document.getElementById('site_url').value = '';
+async function editSite(id, currentUrl) {
+  const newUrl = prompt('Edit site URL:', currentUrl);
+  if (newUrl && newUrl.trim() !== currentUrl) {
+    try {
+      await apiCall(`/portals/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ link: newUrl.trim() })
+      });
+      
+      loadPortals(); // Reload portals
+    } catch (error) {
+      alert('Failed to update portal: ' + error.message);
+    }
+  }
+}
 
-  renderCategories();
-  renderSites();
-});
+async function deleteSite(id) {
+  if (confirm('Delete this site?')) {
+    try {
+      await apiCall(`/portals/${id}`, {
+        method: 'DELETE'
+      });
+      
+      loadPortals(); // Reload portals
+    } catch (error) {
+      alert('Failed to delete portal: ' + error.message);
+    }
+  }
+}
 
-// Render categories
-function renderCategories() {
-  const res = db.exec("SELECT DISTINCT category FROM portals");
+async function handleRefreshAll() {
+  if (confirm('This will delete all your portals. Are you sure?')) {
+    try {
+      // Get all portals and delete them
+      const portals = await apiCall('/portals');
+      for (const portal of portals) {
+        await apiCall(`/portals/${portal.id}`, { method: 'DELETE' });
+      }
+      
+      // Add some default portals
+      const defaultPortals = [
+        { category: 'QA', link: 'indeed.com' },
+        { category: 'QA', link: 'linkedin.com' },
+        { category: 'Dev', link: 'stackoverflow.com/jobs' },
+        { category: 'Dev', link: 'github.com/jobs' }
+      ];
+      
+      for (const portal of defaultPortals) {
+        await apiCall('/portals', {
+          method: 'POST',
+          body: JSON.stringify(portal)
+        });
+      }
+      
+      loadPortals(); // Reload portals
+    } catch (error) {
+      alert('Failed to refresh portals: ' + error.message);
+    }
+  }
+}
+
+// Render functions
+function renderCategories(portals) {
+  const categories = [...new Set(portals.map(p => p.category))];
   const picker = document.getElementById('categoryPicker');
   picker.innerHTML = '';
-
-  if (res.length === 0) return;
-
-  const categories = res[0].values.map(row => row[0]);
-
+  
+  if (categories.length === 0) {
+    picker.innerHTML = '<p>No categories found. Add some portals first.</p>';
+    return;
+  }
+  
   categories.forEach(cat => {
     const id = `cat-${cat}`;
     const label = document.createElement('label');
     label.innerHTML = `<input type="radio" name="category" value="${cat}" id="${id}"> ${cat}`;
     picker.appendChild(label);
   });
-
+  
   picker.querySelectorAll('input[type=radio]').forEach(radio => {
     radio.addEventListener('change', e => {
       selectedCategory = e.target.value;
-      renderSites();
+      renderSites(portals);
     });
   });
 }
 
-// Render sites for selected category
-function renderSites() {
+function renderSites(portals) {
   const list = document.getElementById('siteList');
   list.innerHTML = '';
-
+  
   if (!selectedCategory) return;
-
-  const res = db.exec("SELECT rowid, site_url FROM portals WHERE category = ?", [selectedCategory]);
-  if (res.length === 0) return;
-
-  res[0].values.forEach(row => {
-    const [id, url] = row;
+  
+  const categoryPortals = portals.filter(p => p.category === selectedCategory);
+  
+  if (categoryPortals.length === 0) {
+    list.innerHTML = '<li>No sites in this category</li>';
+    return;
+  }
+  
+  categoryPortals.forEach(portal => {
     const li = document.createElement('li');
     li.innerHTML = `
-      <span class="site-url">${url}</span>
-      <button onclick="editSite(${id}, '${url}')">Edit</button>
-      <button onclick="deleteSite(${id})">Delete</button>
+      <span class="site-url">${portal.link}</span>
+      <button onclick="editSite(${portal.id}, '${portal.link}')">Edit</button>
+      <button onclick="deleteSite(${portal.id})">Delete</button>
     `;
     list.appendChild(li);
   });
 }
 
-// Edit site
-function editSite(id, currentUrl) {
-  const newUrl = prompt('Edit site URL:', currentUrl);
-  if (newUrl && newUrl.trim() !== currentUrl) {
-    db.run("UPDATE portals SET site_url = ? WHERE rowid = ?", [newUrl.trim(), id]);
-    saveDb();
-    renderSites();
-  }
-}
-
-// Delete site
-function deleteSite(id) {
-  if (confirm('Delete this site?')) {
-    db.run("DELETE FROM portals WHERE rowid = ?", [id]);
-    saveDb();
-    renderSites();
-  }
-}
-
-// Refresh all data
-function refreshAll() {
-  if (confirm('Reset all data to dummy data? This will delete all custom entries.')) {
-    db.run("DELETE FROM portals");
-    dummyData.forEach(item => {
-      db.run("INSERT INTO portals (category, site_url) VALUES (?, ?)", [item.category, item.site_url]);
-    });
-    saveDb();
-    renderCategories();
-    renderSites();
-  }
-}
-
-// Refresh all button
-document.getElementById('refreshAll').addEventListener('click', refreshAll);
-
-// --- Search logic ---
-document.getElementById('searchForm').addEventListener('submit', (e) => {
+// Search logic
+function handleSearch(e) {
   e.preventDefault();
-
+  
   const keyword = document.getElementById('keyword').value.trim();
   const dateRange = document.getElementById('dateRange').value;
   const excludeHybrid = document.getElementById('excludeHybrid').checked;
   const excludeOnsite = document.getElementById('excludeOnsite').checked;
-
+  
   if (!keyword) {
     alert('Please enter a keyword.');
     return;
@@ -198,27 +315,41 @@ document.getElementById('searchForm').addEventListener('submit', (e) => {
     alert('Please select a category.');
     return;
   }
+  
+  // Get sites for selected category
+  apiCall('/portals').then(portals => {
+    const sites = portals
+      .filter(p => p.category === selectedCategory)
+      .map(p => p.link);
+    
+    const query = buildGoogleQuery({ 
+      keyword, 
+      dateRange, 
+      sites, 
+      excludeHybrid, 
+      excludeOnsite 
+    });
+    
+    showDebug(query);
+    openGoogleSearch(query);
+  }).catch(error => {
+    alert('Failed to get portals for search: ' + error.message);
+  });
+}
 
-  const query = buildGoogleQuery({ keyword, dateRange, category: selectedCategory, excludeHybrid, excludeOnsite });
-  showDebug(query);
-  openGoogleSearch(query);
-});
-
-function buildGoogleQuery({ keyword, dateRange, category, excludeHybrid, excludeOnsite }) {
-  const res = db.exec("SELECT site_url FROM portals WHERE category = ?", [category]);
-  const sites = res.length > 0 ? res[0].values.map(row => row[0]) : [];
+function buildGoogleQuery({ keyword, dateRange, sites, excludeHybrid, excludeOnsite }) {
   const siteFilter = buildSiteFilter(sites);
   const afterDate = computeAfterDate(dateRange);
-
+  
   let query = `${siteFilter} "${keyword}" after:${afterDate} Remote`;
-
+  
   if (excludeHybrid) {
     query += ' -hybrid';
   }
   if (excludeOnsite) {
     query += ' -onsite';
   }
-
+  
   return query;
 }
 
@@ -230,23 +361,23 @@ function buildSiteFilter(domains) {
 
 function computeAfterDate(range) {
   const now = new Date();
-
+  
   if (range === 'today') {
     return formatDate(now);
   }
-
+  
   if (range === 'this-week') {
     const weekAgo = new Date(now);
     weekAgo.setDate(now.getDate() - 7);
     return formatDate(weekAgo);
   }
-
+  
   if (range === 'this-month') {
-    const monthago = new Date(now);
-    monthago.setDate(now.getDate() - 31);
-    return formatDate(monthago);
+    const monthAgo = new Date(now);
+    monthAgo.setDate(now.getDate() - 31);
+    return formatDate(monthAgo);
   }
-
+  
   return formatDate(now);
 }
 
