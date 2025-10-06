@@ -182,7 +182,7 @@ $db = new MySQLHelper();
 // Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$path = str_replace('/jobportal/backend', '', $path); // Adjust based on your setup
+$path = str_replace('job-query-builder/backend', '', $path); // Adjust based on your setup
 $pathParts = explode('/', trim($path, '/'));
 
 try {
