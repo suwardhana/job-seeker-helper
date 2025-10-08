@@ -212,6 +212,20 @@ try {
                     'created_at' => date('Y-m-d H:i:s')
                 ]);
                 
+                // If portals data is provided (from guest mode), insert them
+                if (isset($input['portals']) && is_array($input['portals'])) {
+                    foreach ($input['portals'] as $portal) {
+                        if (isset($portal['category']) && isset($portal['link'])) {
+                            $db->insert('portals', [
+                                'category' => $portal['category'],
+                                'link' => $portal['link'],
+                                'user_id' => $userId,
+                                'created_at' => date('Y-m-d H:i:s')
+                            ]);
+                        }
+                    }
+                }
+                
                 sendResponse(['message' => 'User registered successfully', 'user_id' => $userId], 201);
                 
             } elseif ($pathParts[0] === 'login') {

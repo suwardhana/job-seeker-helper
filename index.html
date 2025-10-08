@@ -10,7 +10,7 @@
 <body>
   <main class="container">
     <!-- Auth Section -->
-    <div id="authSection" class="auth-section">
+    <div id="authSection" class="auth-section" style="display: none;">
       <h1>Job Query Builder</h1>
       <div class="auth-cards">
         <div class="card auth-card">
@@ -21,6 +21,7 @@
             <button type="submit">Login</button>
           </form>
           <p>Don't have an account? <a href="#" id="showRegister">Register here</a></p>
+          <p><a href="#" id="continueAsGuest" class="guest-link">Continue as Guest</a></p>
         </div>
 
         <div class="card auth-card" id="registerCard" style="display: none;">
@@ -32,6 +33,7 @@
             <button type="submit">Register</button>
           </form>
           <p>Already have an account? <a href="#" id="showLogin">Login here</a></p>
+          <p><a href="#" id="continueAsGuest2" class="guest-link">Continue as Guest</a></p>
         </div>
       </div>
     </div>
@@ -46,7 +48,6 @@
         </div>
       </div>
 
-      <div class="cards-container"></div>
       <!-- Search Card -->
       <div class="card search-card">
         <h2>Search Jobs</h2>
@@ -108,10 +109,9 @@
 
         <button id="refreshAll" type="button">Refresh All (Reset to Dummy Data)</button>
       </div>
-    </div>
 
-    <!-- Debug -->
-    <section class="debug" id="debug" aria-live="polite"></section>
+      <!-- Debug -->
+      <section class="debug" id="debug" aria-live="polite"></section>
     </div>
   </main>
 

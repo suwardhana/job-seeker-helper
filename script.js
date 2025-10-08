@@ -2,6 +2,8 @@
 let selectedCategory = null;
 let userToken = null;
 let currentUser = null;
+let guestMode = false;
+let guestPortals = [];
 
 // API Configuration
 const API_BASE = './backend'; // Adjust this path based on your setup
@@ -15,10 +17,14 @@ function init() {
   currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
   
   if (userToken && currentUser) {
+    guestMode = false;
     showApp();
     loadPortals();
   } else {
-    showAuth();
+    // Default to guest mode - show app with data.json
+    guestMode = true;
+    showApp(true);
+    loadGuestData();
   }
   
   setupEventListeners();
@@ -31,11 +37,20 @@ function setupEventListeners() {
   document.getElementById('showRegister').addEventListener('click', showRegisterForm);
   document.getElementById('showLogin').addEventListener('click', showLoginForm);
   document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+  document.getElementById('continueAsGuest').addEventListener('click', handleContinueAsGuest);
+  document.getElementById('continueAsGuest2').addEventListener('click', handleContinueAsGuest);
   
   // App event listeners
   document.getElementById('addForm').addEventListener('submit', handleAddPortal);
   document.getElementById('refreshAll').addEventListener('click', handleRefreshAll);
   document.getElementById('searchForm').addEventListener('submit', handleSearch);
+}
+
+function handleContinueAsGuest(e) {
+  e.preventDefault();
+  guestMode = true;
+  showApp(true);
+  loadGuestData();
 }
 
 // Authentication functions
@@ -58,10 +73,11 @@ async function handleLogin(e) {
     if (response.ok) {
       userToken = data.token;
       currentUser = data.user;
+      guestMode = false;
       localStorage.setItem('userToken', userToken);
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
       
-      showApp();
+      showApp(false);
       loadPortals();
     } else {
       alert(data.error || 'Login failed');
@@ -78,12 +94,23 @@ async function handleRegister(e) {
   const password = document.getElementById('registerPassword').value;
   
   try {
+    // Include guest portals data if in guest mode
+    const requestBody = {
+      name,
+      email,
+      password
+    };
+    
+    if (guestMode && guestPortals.length > 0) {
+      requestBody.portals = guestPortals;
+    }
+    
     const response = await fetch(`${API_BASE}/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ name, email, password })
+      body: JSON.stringify(requestBody)
     });
     
     const data = await response.json();
@@ -101,11 +128,19 @@ async function handleRegister(e) {
 }
 
 function handleLogout() {
-  userToken = null;
-  currentUser = null;
-  localStorage.removeItem('userToken');
-  localStorage.removeItem('currentUser');
-  showAuth();
+  if (guestMode) {
+    // In guest mode, this button acts as "Login"
+    showAuth();
+  } else {
+    // Normal logout
+    userToken = null;
+    currentUser = null;
+    guestMode = true;
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('currentUser');
+    showApp(true);
+    loadGuestData();
+  }
 }
 
 function showAuth() {
@@ -113,10 +148,17 @@ function showAuth() {
   document.getElementById('appSection').style.display = 'none';
 }
 
-function showApp() {
+function showApp(isGuest = false) {
   document.getElementById('authSection').style.display = 'none';
-  document.getElementById('appSection').style.display = 'block';
-  document.getElementById('userName').textContent = currentUser.name;
+  document.getElementById('appSection').style.display = 'grid';
+  
+  if (isGuest) {
+    document.getElementById('userName').textContent = 'Guest Mode';
+    document.getElementById('logoutBtn').textContent = 'Login';
+  } else {
+    document.getElementById('userName').textContent = currentUser.name;
+    document.getElementById('logoutBtn').textContent = 'Logout';
+  }
 }
 
 function showRegisterForm() {
@@ -154,8 +196,33 @@ async function apiCall(endpoint, options = {}) {
   return data;
 }
 
+// Load guest data from data.json
+async function loadGuestData() {
+  try {
+    const response = await fetch('./data.json');
+    const data = await response.json();
+    
+    // Convert data.json format to portal format
+    guestPortals = data.map((item, index) => ({
+      id: index + 1,
+      category: item.category,
+      link: item.site_url
+    }));
+    
+    renderCategories(guestPortals);
+  } catch (error) {
+    console.error('Failed to load guest data:', error);
+    alert('Failed to load data: ' + error.message);
+  }
+}
+
 // Portal management functions
 async function loadPortals() {
+  if (guestMode) {
+    loadGuestData();
+    return;
+  }
+  
   try {
     const portals = await apiCall('/portals');
     renderCategories(portals);
@@ -167,6 +234,16 @@ async function loadPortals() {
 
 async function handleAddPortal(e) {
   e.preventDefault();
+  
+  // Check if user is in guest mode
+  if (guestMode) {
+    const shouldRegister = confirm('You need to register to add custom portals. Would you like to register now? Your current data will be saved.');
+    if (shouldRegister) {
+      showRegisterForm();
+    }
+    return;
+  }
+  
   const category = document.getElementById('category').value.trim();
   const link = document.getElementById('site_url').value.trim();
   
@@ -188,6 +265,11 @@ async function handleAddPortal(e) {
 }
 
 async function editSite(id, currentUrl) {
+  if (guestMode) {
+    alert('Please register to edit portals. Your current data will be saved when you register.');
+    return;
+  }
+  
   const newUrl = prompt('Edit site URL:', currentUrl);
   if (newUrl && newUrl.trim() !== currentUrl) {
     try {
@@ -204,6 +286,11 @@ async function editSite(id, currentUrl) {
 }
 
 async function deleteSite(id) {
+  if (guestMode) {
+    alert('Please register to delete portals. Your current data will be saved when you register.');
+    return;
+  }
+  
   if (confirm('Delete this site?')) {
     try {
       await apiCall(`/portals/${id}`, {
@@ -218,7 +305,14 @@ async function deleteSite(id) {
 }
 
 async function handleRefreshAll() {
-  if (confirm('This will delete all your portals. Are you sure?')) {
+  if (guestMode) {
+    if (confirm('This will reload data from data.json. Continue?')) {
+      loadGuestData();
+    }
+    return;
+  }
+  
+  if (confirm('This will delete all your portals and reload from data.json. Are you sure?')) {
     try {
       // Get all portals and delete them
       const portals = await apiCall('/portals');
@@ -226,18 +320,15 @@ async function handleRefreshAll() {
         await apiCall(`/portals/${portal.id}`, { method: 'DELETE' });
       }
       
-      // Add some default portals
-      const defaultPortals = [
-        { category: 'QA', link: 'indeed.com' },
-        { category: 'QA', link: 'linkedin.com' },
-        { category: 'Dev', link: 'stackoverflow.com/jobs' },
-        { category: 'Dev', link: 'github.com/jobs' }
-      ];
+      // Load data from data.json
+      const response = await fetch('./data.json');
+      const data = await response.json();
       
-      for (const portal of defaultPortals) {
+      // Add portals from data.json
+      for (const item of data) {
         await apiCall('/portals', {
           method: 'POST',
-          body: JSON.stringify(portal)
+          body: JSON.stringify({ category: item.category, link: item.site_url })
         });
       }
       
@@ -317,7 +408,9 @@ function handleSearch(e) {
   }
   
   // Get sites for selected category
-  apiCall('/portals').then(portals => {
+  const portals = guestMode ? guestPortals : null;
+  
+  if (guestMode) {
     const sites = portals
       .filter(p => p.category === selectedCategory)
       .map(p => p.link);
@@ -332,9 +425,26 @@ function handleSearch(e) {
     
     showDebug(query);
     openGoogleSearch(query);
-  }).catch(error => {
-    alert('Failed to get portals for search: ' + error.message);
-  });
+  } else {
+    apiCall('/portals').then(portals => {
+      const sites = portals
+        .filter(p => p.category === selectedCategory)
+        .map(p => p.link);
+      
+      const query = buildGoogleQuery({ 
+        keyword, 
+        dateRange, 
+        sites, 
+        excludeHybrid, 
+        excludeOnsite 
+      });
+      
+      showDebug(query);
+      openGoogleSearch(query);
+    }).catch(error => {
+      alert('Failed to get portals for search: ' + error.message);
+    });
+  }
 }
 
 function buildGoogleQuery({ keyword, dateRange, sites, excludeHybrid, excludeOnsite }) {
